@@ -1,0 +1,12 @@
+rootProject.name = 'aurora-imui'
+
+include ':exampleui', ':messagelist', ':chatinput'
+project(':exampleui').projectDir = new File(rootProject.projectDir, 'sample/exampleui')
+project(':messagelist').projectDir = new File(rootProject.projectDir, 'messagelist')
+project(':chatinput').projectDir = new File(rootProject.projectDir, 'chatinput')
+
+include ':aiinteract'
+project(':aiinteract').projectDir = new File(rootProject.projectDir, '../aiinteract')
+
+include ':memory'
+project(':memory').projectDir = new File(rootProject.projectDir, '../memory')

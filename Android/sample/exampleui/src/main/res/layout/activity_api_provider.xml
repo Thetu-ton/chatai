@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#f3f3f3">
+
+    <!-- Title Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@color/chat_title_bg"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/api_provider_title"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="36dp"
+            android:layout_height="36dp" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Provider Cards -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose Provider"
+                android:textSize="14sp"
+                android:textColor="#999999"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/provider_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#e0e0e0"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- API Key -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="API Key"
+                android:textSize="14sp"
+                android:textColor="#999999"
+                android:layout_marginBottom="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/et_api_key"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/aurora_edittext_bg"
+                    android:hint="@string/api_key_hint"
+                    android:inputType="textPassword"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btn_get_api_key"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:text="@string/get_api_key"
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp"
+                    style="?android:attr/buttonBarButtonStyle" />
+
+            </LinearLayout>
+
+            <!-- Model Selection -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/model_label"
+                android:textSize="14sp"
+                android:textColor="#999999"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spinner_model"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/aurora_edittext_bg" />
+
+            <!-- Custom API fields (visible only when CUSTOM selected) -->
+            <LinearLayout
+                android:id="@+id/custom_fields"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="API Endpoint"
+                    android:textSize="14sp"
+                    android:textColor="#999999"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/et_endpoint"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/aurora_edittext_bg"
+                    android:hint="@string/endpoint_hint"
+                    android:inputType="textUri"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Model Name"
+                    android:textSize="14sp"
+                    android:textColor="#999999"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/et_custom_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/aurora_edittext_bg"
+                    android:hint="@string/custom_model_hint"
+                    android:inputType="text"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <!-- AI Name -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ai_name_hint"
+                android:textSize="14sp"
+                android:textColor="#999999"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/et_ai_name"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/aurora_edittext_bg"
+                android:hint="AI Assistant"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp" />
+
+            <!-- Feature Toggles -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/voice_enabled"
+                    android:textSize="14sp"
+                    android:textColor="#333333" />
+
+                <Switch
+                    android:id="@+id/switch_voice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/video_enabled"
+                    android:textSize="14sp"
+                    android:textColor="#333333"
+                    android:layout_marginStart="16dp" />
+
+                <Switch
+                    android:id="@+id/switch_video"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
+
+            <!-- Save Button -->
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="@string/save_connect"
+                android:textSize="16sp"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/chat_title_bg"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="32dp" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

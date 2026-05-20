@@ -1,0 +1,53 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 33
+
+    defaultConfig {
+        applicationId "imui.jiguang.cn.imuisample"
+        minSdkVersion 16
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    "$project.rootDir/sample/tools/proguard-rules.pro"
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    "$project.rootDir/tools/proguard-rules-debug.pro"
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    namespace 'imui.jiguang.cn.imuisample'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    implementation 'pub.devrel:easypermissions:0.4.0'
+    implementation 'androidx.viewpager:viewpager:1.0.0'
+
+    implementation project(':messagelist')
+    implementation project(':chatinput')
+    implementation project(':aiinteract')
+    implementation project(':memory')
+
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

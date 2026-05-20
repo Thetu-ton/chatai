@@ -1,0 +1,37 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'com.chatai.memory'
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 19
+        targetSdk 33
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation project(':aiinteract')
+    compileOnly project(':messagelist')
+
+    // Room — open-source ORM for persistent long-term memory (Apache 2.0)
+    implementation 'androidx.room:room-runtime:2.5.2'
+    annotationProcessor 'androidx.room:room-compiler:2.5.2'
+
+    // Gson for JSON serialization of extras
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
