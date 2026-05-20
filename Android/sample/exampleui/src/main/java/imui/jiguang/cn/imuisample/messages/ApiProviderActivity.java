@@ -123,9 +123,9 @@ public class ApiProviderActivity extends AppCompatActivity {
             ImageView ivCheck = card.findViewById(R.id.iv_check);
             ApiPreset cardPreset = (ApiPreset) card.getTag();
             if (cardPreset == preset) {
-                ivCheck.setImageResource(android.R.drawable.radiobutton_on_background);
+                ivCheck.setImageResource(R.drawable.ic_check_selected);
             } else {
-                ivCheck.setImageResource(android.R.drawable.radiobutton_off_background);
+                ivCheck.setImageResource(R.drawable.ic_check_unselected);
             }
         }
 
