@@ -21,7 +21,6 @@ Thumbs.db
 # Claude
 .claude/
 
-# Secrets (API keys, tokens)
-*.env
-*.secret
-local.properties
+# Build outputs
+*.apk
+*.aab
