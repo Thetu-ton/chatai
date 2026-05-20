@@ -39,7 +39,7 @@ import com.chatai.memory.MemoryManager;
 import com.chatai.memory.MemoryConfig;
 import com.chatai.memory.MessageConverter;
 import com.chatai.aiinteract.AiInteract;
-import com.chatai.aiinteract.AiConfig;
+import com.chatai.aiinteract.ApiPreset;
 import com.chatai.aiinteract.callback.AiCallback;
 import com.chatai.aiinteract.models.AiMessage;
 import com.chatai.aiinteract.bridge.AiMessageBridge;
@@ -48,30 +48,22 @@ import com.chatai.aiinteract.bridge.AiMessageBridge;
 #### 2b. In `onCreate()`, after `mChatView.initModule()`:
 
 ```java
-// --- Initialize Memory Module ---
-MemoryConfig memoryConfig = new MemoryConfig.Builder()
-    .mem0("https://your-mem0-server.com", "mem0-api-key", "user_123")
+// --- Initialize Memory + AI in one call ---
+MemoryConfig memoryConfig = MemoryConfig.fromPreset(
+    ApiPreset.GROK,          // AI 提供商
+    "xai-your-api-key",      // AI API Key
+    "user_123"               // Mem0 用户 ID
+)
+    .mem0("https://api.mem0.ai", "mem0-api-key")
     .userDisplayName("Ironman")
     .maxContextMessages(50)
     .maxMemoryEntries(5)
     .build();
+
 MemoryManager.init(this, memoryConfig);
+// AiInteract is auto-initialized — no separate AiInteract.init() needed
 
-// --- Initialize AI Module ---
-AiConfig aiConfig = new AiConfig.Builder(
-    "https://api.openai.com/v1/chat/completions",
-    "sk-your-api-key"
-)
-    .model("gpt-4")
-    .aiUserName("AI Assistant")
-    .build();
-AiInteract.init(aiConfig);
-
-// --- Set system prompt with memories ---
-String prompt = MemoryManager.getInstance().buildSystemPromptWithMemories();
-AiInteract.getInstance().setSystemPrompt(prompt);
-
-// --- Restore last session ---
+// Restore last session (includes long-term memories in system prompt)
 MemoryManager.getInstance().restoreConversationToAiInteract();
 ```
 
@@ -91,11 +83,12 @@ public boolean onSendTextMessage(CharSequence input) {
     message.setMessageStatus(IMessage.MessageStatus.SEND_GOING);
     mAdapter.addToStart(message, true);
 
-    // 2. Persist to memory (Room)
+    // 2. Persist to memory (Room) + extract long-term memories (Mem0, async)
     MemoryManager.getInstance().onUserMessage(message, "1");
-
-    // 3. Extract long-term memories (Mem0, async)
     MemoryManager.getInstance().memorize(text);
+
+    // 3. Apply updated system prompt (with fresh Mem0 memories) to AiInteract
+    MemoryManager.getInstance().applySystemPromptToAi();
 
     // 4. Show typing indicator
     IUser aiUser = new DefaultUser("0", "AI", "R.drawable.deadpool");
@@ -103,43 +96,49 @@ public boolean onSendTextMessage(CharSequence input) {
     mAdapter.addToStart(typingMsg, true);
     String typingMsgId = typingMsg.getMsgId();
 
-    // 5. Refresh system prompt with latest Mem0 memories before sending
-    MemoryManager.getInstance().buildSystemPromptAsync(prompt -> {
-        AiInteract.getInstance().setSystemPrompt(prompt);
+    // 5. Send to AI
+    AiInteract.getInstance().sendTextMessage(text, new AiCallback() {
+        @Override
+        public void onResponse(AiMessage aiMessage) {
+            mAdapter.deleteById(typingMsgId);
+            MemoryManager.getInstance().onAiResponse(aiMessage);
+            IMessage displayMsg = AiMessageBridge.forReceived(aiMessage, aiUser);
+            mAdapter.addToStart(displayMsg, true);
+        }
 
-        // 6. Send to AI
-        AiInteract.getInstance().sendTextMessage(text, new AiCallback() {
-            @Override
-            public void onResponse(AiMessage aiMessage) {
-                mAdapter.deleteById(typingMsgId);
-                MemoryManager.getInstance().onAiResponse(aiMessage);
-                IMessage displayMsg = AiMessageBridge.forReceived(aiMessage, aiUser);
-                mAdapter.addToStart(displayMsg, true);
-            }
+        @Override
+        public void onStreamChunk(String chunk) { /* update streaming bubble */ }
 
-            @Override
-            public void onStreamChunk(String chunk) { /* update streaming bubble */ }
+        @Override
+        public void onStreamComplete() {}
 
-            @Override
-            public void onStreamComplete() {}
+        @Override
+        public void onError(int code, String msg) {
+            mAdapter.deleteById(typingMsgId);
+            Toast.makeText(MessageListActivity.this,
+                "AI Error: " + msg, Toast.LENGTH_SHORT).show();
+        }
 
-            @Override
-            public void onError(int code, String msg) {
-                mAdapter.deleteById(typingMsgId);
-                Toast.makeText(MessageListActivity.this,
-                    "AI Error: " + msg, Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onFileDownloadProgress(int progress) {}
-        });
+        @Override
+        public void onFileDownloadProgress(int progress) {}
     });
 
     return true;
 }
 ```
 
-#### 2d. In `onDestroy()`:
+#### 2d. Provider switching (for Settings screen):
+
+```java
+// User picks a different AI provider in settings:
+MemoryManager.getInstance().switchAiPreset(ApiPreset.CLAUDE, "claude-api-key");
+
+// Get available presets for the settings UI:
+List<ApiPreset> presets = MemoryManager.getInstance().getAvailablePresets();
+// Each preset has: getId(), getDisplayName(), getDescription(), getModels(), getApiKeyUrl()
+```
+
+#### 2e. In `onDestroy()`:
 
 ```java
 @Override
@@ -154,41 +153,13 @@ protected void onDestroy() {
 
 ---
 
-## 3. Make AiApiClient use configurable system prompt
-
-### File: `aiinteract/src/main/java/com/chatai/aiinteract/network/AiApiClient.java`
-
-The AiApiClient hardcodes its system prompt. The memory module needs to inject its own (with Mem0 memories).
-
-**Option A** (minimal): AiApiClient already builds the system prompt from a constant. `AiInteract.setSystemPrompt()` adds a system message to conversation history. The hardcoded SYSTEM_PROMPT in AiApiClient is a separate system message added *before* the conversation history. Update `buildRequestBody()` to use a configurable prompt:
-
-```java
-private String customSystemPrompt;
-
-public void setSystemPrompt(String prompt) {
-    this.customSystemPrompt = prompt;
-}
-
-private String getPrompt() {
-    return customSystemPrompt != null ? customSystemPrompt : SYSTEM_PROMPT;
-}
-```
-
-Then use `getPrompt()` instead of `SYSTEM_PROMPT` in `buildRequestBody()` and `buildRequestBodyStreaming()`.
-
-**Option B** (cleaner): MemoryManager provides the full context list via `getContextForLLM(userInput)`, which already includes the system prompt. If AiInteract had a method like `sendWithContext(List<AiMessage> messages, AiCallback cb)` that bypasses its own conversation history building, the integration would be seamless.
-
-For now, use **Option A + calling `AiInteract.getInstance().setSystemPrompt(prompt)` before each send**.
-
----
-
-## 4. Remove mock data (for production)
+## 3. Remove mock data (for production)
 
 In `initMsgAdapter()`, remove or comment out the hardcoded sample messages (~lines 611-634 in MessageListActivity). Also remove `mAdapter.addToEndChronologically(mData)`.
 
 ---
 
-## 5. Mem0 Server Setup
+## 4. Mem0 Server Setup
 
 The memory module's long-term memory depends on a running Mem0 instance.
 
@@ -205,7 +176,7 @@ docker run -p 8000:8000 -e MEM0_API_KEY=your-key mem0/mem0-server
 
 **Mem0 Cloud:** Use `https://api.mem0.ai` with your API key.
 
-Configure via `MemoryConfig.Builder.mem0(endpoint, apiKey, userId)`.
+Configure via `MemoryConfig.fromPreset(...).mem0(endpoint, apiKey)`.
 
 ---
 
@@ -215,8 +186,8 @@ Configure via `MemoryConfig.Builder.mem0(endpoint, apiKey, userId)`.
 |---|---|
 | `Android/settings.gradle` | Add `:memory` and `:aiinteract` module includes |
 | `Android/sample/exampleui/build.gradle` | Add `implementation project(':memory')` and `:aiinteract` |
-| `aiinteract/.../network/AiApiClient.java` | Make system prompt configurable |
-| `Android/.../MessageListActivity.java` | Wire MemoryManager + AiInteract, remove mock data |
+| `Android/.../MessageListActivity.java` | Wire MemoryManager (auto-inits AiInteract), remove mock data |
+| (none) | No changes needed to AiApiClient — `setSystemPrompt()` already supported |
 
 ---
 
@@ -235,8 +206,8 @@ MessageListActivity.onSendTextMessage()
         ├──► MemoryManager.memorize()                  [Mem0 长期记忆]
         │     └── Mem0Client → POST /v1/memories/
         │
-        ├──► MemoryManager.buildSystemPromptAsync()    [获取最新 Mem0 记忆]
-        │     └── AiInteract.setSystemPrompt()         [注入到 LLM system prompt]
+        ├──► MemoryManager.applySystemPromptToAi()     [注入长期记忆到 system prompt]
+        │     └── AiInteract.setSystemPrompt()
         │
         └──► AiInteract.sendTextMessage()              [发送给 LLM]
                 │
@@ -246,4 +217,14 @@ MessageListActivity.onSendTextMessage()
                 ├──► MemoryManager.onAiResponse()      [Room 持久化]
                 │
                 └──► AiMessageBridge → mAdapter        [UI display]
+
+--- Provider Switching ---
+
+Settings Activity
+        │
+        ├──► MemoryManager.getAvailablePresets()       [获取提供商列表]
+        │     └── ApiPreset.getDisplayName() / getDescription() / getModels()
+        │
+        └──► MemoryManager.switchAiPreset(preset, key) [切换提供商]
+              └── AiInteract.switchToPreset() + applySystemPromptToAi()
 ```

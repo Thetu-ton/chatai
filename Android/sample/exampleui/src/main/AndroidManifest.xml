@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".IMUISampleApplication"
@@ -17,6 +18,7 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".messages.MessageListActivity"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -26,9 +28,17 @@
         </activity>
         <activity
             android:name=".messages.VideoActivity"
+            android:exported="false"
             android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen">
 
         </activity>
-        <activity android:name=".messages.BrowserImageActivity" />
+        <activity
+            android:name=".messages.BrowserImageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".messages.ApiProviderActivity"
+            android:exported="false"
+            android:label="@string/api_provider_title"
+            android:theme="@style/AppTheme" />
     </application>
 </manifest>

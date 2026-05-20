@@ -4,7 +4,9 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.chatai.aiinteract.AiConfig;
 import com.chatai.aiinteract.AiInteract;
+import com.chatai.aiinteract.ApiPreset;
 import com.chatai.aiinteract.models.AiMessage;
 import com.chatai.memory.mem0.Mem0Client;
 import com.chatai.memory.mem0.Mem0Models;
@@ -30,13 +32,12 @@ import cn.jiguang.imui.commons.models.IMessage;
  *   <li><b>Cloud (Mem0)</b> — long-term semantic memories via vector embedding search</li>
  * </ul>
  *
- * <p>Full lifecycle:
+ * <p>Full lifecycle with preset:
  * <pre>
- *   MemoryConfig config = new MemoryConfig.Builder()
- *       .mem0("https://api.mem0.ai", "key", "user123")
+ *   MemoryConfig config = MemoryConfig.fromPreset(ApiPreset.GROK, "xai-key", "user_123")
+ *       .mem0("https://api.mem0.ai", "mem0-key")
  *       .build();
  *   MemoryManager.init(context, config);
- *   AiInteract.init(aiConfig);
  *   MemoryManager.getInstance().restoreConversationToAiInteract();
  * </pre>
  */
@@ -56,8 +57,11 @@ public class MemoryManager {
     /**
      * Initialize the memory module.
      *
+     * <p>If the config contains AI provider info (preset or endpoint+key),
+     * this also initializes AiInteract automatically.
+     *
      * @param context Application context (for Room database)
-     * @param config  Memory configuration (including Mem0 settings)
+     * @param config  Memory configuration (including Mem0 and AI provider settings)
      */
     public static synchronized void init(Context context, MemoryConfig config) {
         if (instance == null) {
@@ -73,6 +77,9 @@ public class MemoryManager {
                 config.getMem0UserId()
             );
         }
+
+        // Auto-initialize AiInteract if AI provider info is present
+        instance.initAiInteractIfNeeded();
     }
 
     public static MemoryManager getInstance() {
@@ -126,6 +133,36 @@ public class MemoryManager {
                 android.util.Log.w("MemoryManager", "Mem0 add failed: " + message);
             }
         });
+    }
+
+    // ==================== AI Provider Management ====================
+
+    /**
+     * Switch the AI provider at runtime (e.g., user selects Grok in settings).
+     * Rebuilds the system prompt with memories and applies it to AiInteract.
+     *
+     * @param preset The AI provider to switch to
+     * @param apiKey API key for the provider
+     */
+    public void switchAiPreset(ApiPreset preset, String apiKey) {
+        AiInteract.getInstance().switchToPreset(preset, apiKey);
+        applySystemPromptToAi();
+    }
+
+    /**
+     * Get available AI provider presets for UI display.
+     */
+    public List<ApiPreset> getAvailablePresets() {
+        return AiInteract.getAvailablePresets();
+    }
+
+    /**
+     * Apply the current system prompt (with memories) to AiInteract.
+     * Call this after restoring conversation or whenever memories change.
+     */
+    public void applySystemPromptToAi() {
+        String prompt = buildSystemPromptWithMemories();
+        AiInteract.getInstance().setSystemPrompt(prompt);
     }
 
     // ==================== Context Assembly for LLM ====================
@@ -441,7 +478,7 @@ public class MemoryManager {
         List<AiMessage> history = AiInteract.getInstance().getConversationHistory();
         history.clear();
         history.addAll(recent);
-        AiInteract.getInstance().setSystemPrompt(buildSystemPromptWithMemories());
+        applySystemPromptToAi();
     }
 
     /**
@@ -467,6 +504,31 @@ public class MemoryManager {
     public MemoryConfig getConfig() { return config; }
 
     // ==================== Internal ====================
+
+    /**
+     * Auto-initialize AiInteract if the config has AI provider information.
+     */
+    private void initAiInteractIfNeeded() {
+        if (config.getPreset() != null && config.getAiApiKey() != null) {
+            // Use preset
+            AiConfig aiConfig = ApiPreset.CUSTOM.equals(config.getPreset())
+                ? new AiConfig.Builder(config.getAiApiEndpoint(), config.getAiApiKey())
+                    .model(config.getAiModel()).build()
+                : AiConfig.fromPreset(config.getPreset(), config.getAiApiKey())
+                    .aiUserId(config.getAiUserId())
+                    .aiUserName(config.getAiUserName())
+                    .build();
+            AiInteract.init(aiConfig);
+        } else if (config.getAiApiEndpoint() != null && config.getAiApiKey() != null) {
+            // Use custom endpoint
+            AiConfig aiConfig = new AiConfig.Builder(config.getAiApiEndpoint(), config.getAiApiKey())
+                .model(config.getAiModel() != null ? config.getAiModel() : "gpt-4")
+                .aiUserId(config.getAiUserId())
+                .aiUserName(config.getAiUserName())
+                .build();
+            AiInteract.init(aiConfig);
+        }
+    }
 
     private String extractKeywords(String input) {
         if (input == null || input.trim().isEmpty()) return "";

@@ -9,6 +9,7 @@ import com.google.gson.JsonParser;
 import com.chatai.aiinteract.AiConfig;
 import com.chatai.aiinteract.callback.AiCallback;
 import com.chatai.aiinteract.models.AiMessage;
+import com.chatai.aiinteract.models.AiMessageType;
 import com.chatai.aiinteract.models.AiResponse;
 
 import java.io.BufferedReader;

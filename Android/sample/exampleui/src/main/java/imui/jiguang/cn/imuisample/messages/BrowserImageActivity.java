@@ -68,14 +68,14 @@ public class BrowserImageActivity extends Activity {
                         photoView.setImageBitmap(bitmap);
                         mCache.put(path, bitmap);
                     } else {
-                        photoView.setImageResource(R.drawable.aurora_picture_not_found);
+                        photoView.setImageResource(R.drawable.placeholder_image);
                     }
                 } else {
-                    photoView.setImageResource(R.drawable.aurora_picture_not_found);
+                    photoView.setImageResource(R.drawable.placeholder_image);
                 }
             }
         } else {
-            photoView.setImageResource(R.drawable.aurora_picture_not_found);
+            photoView.setImageResource(R.drawable.placeholder_image);
         }
         mViewPager.setCurrentItem(position);
     }
@@ -109,14 +109,14 @@ public class BrowserImageActivity extends Activity {
                             photoView.setImageBitmap(bitmap);
                             mCache.put(path, bitmap);
                         } else {
-                            photoView.setImageResource(R.drawable.aurora_picture_not_found);
+                            photoView.setImageResource(R.drawable.placeholder_image);
                         }
                     } else {
-                        photoView.setImageResource(R.drawable.aurora_picture_not_found);
+                        photoView.setImageResource(R.drawable.placeholder_image);
                     }
                 }
             } else {
-                photoView.setImageResource(R.drawable.aurora_picture_not_found);
+                photoView.setImageResource(R.drawable.placeholder_image);
             }
             container.addView(photoView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             return photoView;

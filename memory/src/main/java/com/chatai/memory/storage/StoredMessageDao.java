@@ -32,13 +32,12 @@ public interface StoredMessageDao {
     List<StoredMessageEntity> getRecentMessages(int limit);
 
     /**
-     * Search messages by keyword using FTS4.
-     * Returns messages whose text matches the query, ordered by recency.
+     * Search messages by keyword using LIKE.
+     * Returns messages whose text contains the query, ordered by recency.
      */
-    @Query("SELECT messages.* FROM messages " +
-           "JOIN messages_fts ON messages.rowid = messages_fts.rowid " +
-           "WHERE messages_fts MATCH :query " +
-           "ORDER BY messages.timestamp DESC " +
+    @Query("SELECT * FROM messages " +
+           "WHERE text LIKE '%' || :query || '%' " +
+           "ORDER BY timestamp DESC " +
            "LIMIT :limit")
     List<StoredMessageEntity> searchByKeyword(String query, int limit);
 
@@ -46,13 +45,12 @@ public interface StoredMessageDao {
      * Search messages by keyword, but exclude the N most recent ones
      * (to avoid duplicating context already in the recent window).
      */
-    @Query("SELECT messages.* FROM messages " +
-           "JOIN messages_fts ON messages.rowid = messages_fts.rowid " +
-           "WHERE messages_fts MATCH :query " +
-           "AND messages.rowid NOT IN (" +
-           "  SELECT rowid FROM messages ORDER BY timestamp DESC LIMIT :excludeRecent" +
+    @Query("SELECT * FROM messages " +
+           "WHERE text LIKE '%' || :query || '%' " +
+           "AND id NOT IN (" +
+           "  SELECT id FROM messages ORDER BY timestamp DESC LIMIT :excludeRecent" +
            ") " +
-           "ORDER BY messages.timestamp DESC " +
+           "ORDER BY timestamp DESC " +
            "LIMIT :limit")
     List<StoredMessageEntity> searchExcludingRecent(String query, int excludeRecent, int limit);
 

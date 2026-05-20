@@ -21,8 +21,7 @@ import androidx.room.RoomDatabase;
 @Database(
     entities = {
         StoredMessageEntity.class,
-        MemoryEntryEntity.class,
-        MessageFts.class
+        MemoryEntryEntity.class
     },
     version = 1,
     exportSchema = false

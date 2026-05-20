@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -78,11 +79,11 @@ import com.chatai.aiinteract.callback.AiCallback;
 import com.chatai.aiinteract.models.AiMessage;
 import com.chatai.aiinteract.bridge.AiMessageBridge;
 
-import pub.devrel.easypermissions.AppSettingsDialog;
-import pub.devrel.easypermissions.EasyPermissions;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MessageListActivity extends Activity implements View.OnTouchListener,
-        EasyPermissions.PermissionCallbacks, SensorEventListener {
+        SensorEventListener {
 
     private final static String TAG = "MessageListActivity";
     private final int RC_RECORD_VOICE = 0x0001;
@@ -151,7 +152,7 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                 cn.jiguang.imui.commons.models.IUser aiUser =
                     new DefaultUser("0", "AI Assistant", "R.drawable.deadpool");
                 IMessage typingMsg = com.chatai.memory.MessageConverter.createTypingIndicator(aiUser);
-                mAdapter.addToStart(typingMsg, true);
+                mAdapter.addToStart((MyMessage) typingMsg, true);
                 final String typingMsgId = typingMsg.getMsgId();
 
                 // 5. Build system prompt with memories and send to AI
@@ -168,7 +169,7 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
 
                             // Display AI response
                             IMessage displayMsg = AiMessageBridge.forReceived(aiMessage, aiUser);
-                            mAdapter.addToStart(displayMsg, true);
+                            mAdapter.addToStart((MyMessage) displayMsg, true);
 
                             // Update user message status to sent
                             message.setMessageStatus(IMessage.MessageStatus.SEND_SUCCEED);
@@ -241,10 +242,9 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                         Manifest.permission.WRITE_EXTERNAL_STORAGE
                 };
 
-                if (!EasyPermissions.hasPermissions(MessageListActivity.this, perms)) {
-                    EasyPermissions.requestPermissions(MessageListActivity.this,
-                            getResources().getString(R.string.rationale_record_voice),
-                            RC_RECORD_VOICE, perms);
+                if (!hasAllPermissions(perms)) {
+                    ActivityCompat.requestPermissions(MessageListActivity.this,
+                            perms, RC_RECORD_VOICE);
                 }
                 return true;
             }
@@ -256,10 +256,9 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                         Manifest.permission.READ_EXTERNAL_STORAGE
                 };
 
-                if (!EasyPermissions.hasPermissions(MessageListActivity.this, perms)) {
-                    EasyPermissions.requestPermissions(MessageListActivity.this,
-                            getResources().getString(R.string.rationale_photo),
-                            RC_PHOTO, perms);
+                if (!hasAllPermissions(perms)) {
+                    ActivityCompat.requestPermissions(MessageListActivity.this,
+                            perms, RC_PHOTO);
                 }
                 // If you call updateData, select photo view will try to update data(Last update over 30 seconds.)
                 mChatView.getChatInputView().getSelectPhotoView().updateData();
@@ -275,10 +274,9 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                         Manifest.permission.RECORD_AUDIO
                 };
 
-                if (!EasyPermissions.hasPermissions(MessageListActivity.this, perms)) {
-                    EasyPermissions.requestPermissions(MessageListActivity.this,
-                            getResources().getString(R.string.rationale_camera),
-                            RC_CAMERA, perms);
+                if (!hasAllPermissions(perms)) {
+                    ActivityCompat.requestPermissions(MessageListActivity.this,
+                            perms, RC_CAMERA);
                     return false;
                 } else {
                     File rootDir = getFilesDir();
@@ -391,6 +389,13 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                         Toast.LENGTH_SHORT).show();
             }
         });
+
+        mChatView.getSettingsBtn().setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MessageListActivity.this, ApiProviderActivity.class));
+            }
+        });
     }
 
     private void initModules() {
@@ -492,19 +497,17 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // Permissions handled — no EasyPermissions needed
     }
 
-    @Override
-    public void onPermissionsGranted(int requestCode, List<String> perms) {
-
-    }
-
-    @Override
-    public void onPermissionsDenied(int requestCode, List<String> perms) {
-        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
-            new AppSettingsDialog.Builder(this).build().show();
+    private boolean hasAllPermissions(String[] perms) {
+        for (String perm : perms) {
+            if (ContextCompat.checkSelfPermission(this, perm)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
         }
+        return true;
     }
 
     private List<MyMessage> getMessages() {
@@ -544,7 +547,7 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                 } else {
                     Glide.with(MessageListActivity.this)
                             .load(string)
-                            .apply(new RequestOptions().placeholder(R.drawable.aurora_headicon_default))
+                            .apply(new RequestOptions().placeholder(R.drawable.placeholder_avatar))
                             .into(avatarImageView);
                 }
             }
@@ -560,7 +563,7 @@ public class MessageListActivity extends Activity implements View.OnTouchListene
                 Glide.with(getApplicationContext())
                         .asBitmap()
                         .load(string)
-                        .apply(new RequestOptions().fitCenter().placeholder(R.drawable.aurora_picture_not_found))
+                        .apply(new RequestOptions().fitCenter().placeholder(R.drawable.placeholder_image))
                         .into(new SimpleTarget<Bitmap>() {
                             @Override
                             public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {

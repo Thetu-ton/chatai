@@ -1,10 +1,19 @@
 package com.chatai.memory;
 
+import com.chatai.aiinteract.ApiPreset;
+
 /**
  * Configuration for the Memory module.
  *
  * <p>Controls conversation storage, context window size, long-term
  * memory recall via Mem0, and the system prompt injected into LLM requests.
+ *
+ * <p>Supports AI provider presets from the aiinteract module:
+ * <pre>
+ *   MemoryConfig config = MemoryConfig.fromPreset(ApiPreset.GROK, "xai-key", "user_123")
+ *       .mem0("https://api.mem0.ai", "mem0-key")
+ *       .build();
+ * </pre>
  */
 public class MemoryConfig {
 
@@ -23,6 +32,12 @@ public class MemoryConfig {
     private final String mem0UserId;
     private final boolean mem0Enabled;
 
+    // AI provider preset
+    private final ApiPreset preset;
+    private final String aiApiEndpoint;
+    private final String aiApiKey;
+    private final String aiModel;
+
     private MemoryConfig(Builder builder) {
         this.maxContextMessages = builder.maxContextMessages;
         this.maxSearchResults = builder.maxSearchResults;
@@ -36,6 +51,10 @@ public class MemoryConfig {
         this.mem0ApiKey = builder.mem0ApiKey;
         this.mem0UserId = builder.mem0UserId;
         this.mem0Enabled = builder.mem0Enabled;
+        this.preset = builder.preset;
+        this.aiApiEndpoint = builder.aiApiEndpoint;
+        this.aiApiKey = builder.aiApiKey;
+        this.aiModel = builder.aiModel;
     }
 
     public int getMaxContextMessages() { return maxContextMessages; }
@@ -52,6 +71,12 @@ public class MemoryConfig {
     public String getMem0ApiKey() { return mem0ApiKey; }
     public String getMem0UserId() { return mem0UserId; }
     public boolean isMem0Enabled() { return mem0Enabled; }
+
+    // AI provider getters
+    public ApiPreset getPreset() { return preset; }
+    public String getAiApiEndpoint() { return aiApiEndpoint; }
+    public String getAiApiKey() { return aiApiKey; }
+    public String getAiModel() { return aiModel; }
 
     public static class Builder {
         // Local settings
@@ -73,6 +98,12 @@ public class MemoryConfig {
         private String mem0ApiKey;
         private String mem0UserId;
         private boolean mem0Enabled = false;
+
+        // AI provider settings (if not using AiConfig directly)
+        private ApiPreset preset;
+        private String aiApiEndpoint;
+        private String aiApiKey;
+        private String aiModel;
 
         public Builder() {}
 
@@ -100,12 +131,10 @@ public class MemoryConfig {
          *
          * @param endpoint Mem0 server URL (e.g., "https://api.mem0.ai")
          * @param apiKey   Mem0 API key
-         * @param userId   Unique user identifier for memory scoping
          */
-        public Builder mem0(String endpoint, String apiKey, String userId) {
+        public Builder mem0(String endpoint, String apiKey) {
             this.mem0Endpoint = endpoint;
             this.mem0ApiKey = apiKey;
-            this.mem0UserId = userId;
             this.mem0Enabled = true;
             return this;
         }
@@ -122,8 +151,67 @@ public class MemoryConfig {
         public Builder mem0ApiKey(String apiKey) { this.mem0ApiKey = apiKey; return this; }
         public Builder mem0UserId(String userId) { this.mem0UserId = userId; return this; }
 
+        /**
+         * Set the AI provider from an ApiPreset.
+         * This pre-fills the AI endpoint, model, and API key in one call.
+         *
+         * @param preset The AI provider preset (GROK, OPENAI, CLAUDE, CUSTOM)
+         * @param apiKey The API key for the provider
+         */
+        public Builder aiPreset(ApiPreset preset, String apiKey) {
+            this.preset = preset;
+            this.aiApiKey = apiKey;
+            if (preset != ApiPreset.CUSTOM) {
+                this.aiApiEndpoint = preset.getEndpoint();
+                this.aiModel = preset.getDefaultModel();
+            }
+            return this;
+        }
+
+        /**
+         * Override the model from the preset's default.
+         */
+        public Builder aiModel(String model) { this.aiModel = model; return this; }
+
+        /**
+         * Set a custom AI API endpoint (overrides preset endpoint).
+         */
+        public Builder aiApiEndpoint(String endpoint) { this.aiApiEndpoint = endpoint; return this; }
+
+        /**
+         * Set the AI API key directly (alternative to aiPreset).
+         */
+        public Builder aiApiKey(String apiKey) { this.aiApiKey = apiKey; return this; }
+
         public MemoryConfig build() {
             return new MemoryConfig(this);
         }
+    }
+
+    /**
+     * Create a Builder pre-filled with an AI provider preset.
+     *
+     * <p>This is the recommended way to initialize:
+     * <pre>
+     *   MemoryConfig config = MemoryConfig.fromPreset(ApiPreset.GROK, "xai-key", "user_123")
+     *       .mem0("https://api.mem0.ai", "mem0-key")
+     *       .build();
+     * </pre>
+     *
+     * @param preset   The AI provider (GROK, OPENAI, CLAUDE)
+     * @param apiKey   API key for the provider
+     * @param mem0UserId User ID for Mem0 memory scoping
+     * @return A pre-populated Builder
+     */
+    public static Builder fromPreset(ApiPreset preset, String apiKey, String mem0UserId) {
+        Builder builder = new Builder();
+        builder.preset = preset;
+        builder.aiApiKey = apiKey;
+        builder.mem0UserId = mem0UserId;
+        if (preset != ApiPreset.CUSTOM) {
+            builder.aiApiEndpoint = preset.getEndpoint();
+            builder.aiModel = preset.getDefaultModel();
+        }
+        return builder;
     }
 }

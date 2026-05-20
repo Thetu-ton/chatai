@@ -58,35 +58,55 @@ implementation project(':memory')
 implementation project(':aiinteract')
 ```
 
-### 2. 初始化
+### 2. 初始化（推荐使用 Preset）
 
 在 `Application.onCreate()` 或首个 `Activity.onCreate()` 中：
 
 ```java
 import com.chatai.memory.MemoryManager;
 import com.chatai.memory.MemoryConfig;
-import com.chatai.aiinteract.AiInteract;
-import com.chatai.aiinteract.AiConfig;
+import com.chatai.aiinteract.ApiPreset;
 
-// 1. 初始化 Memory 模块
-MemoryConfig memoryConfig = new MemoryConfig.Builder()
-    .mem0Endpoint("https://your-mem0-server.com")  // Mem0 服务地址
-    .mem0ApiKey("your-mem0-api-key")                // Mem0 API Key
-    .mem0UserId("user_123")                         // 当前用户 ID
-    .maxContextMessages(50)                         // 近期消息窗口大小
-    .maxMemoryEntries(5)                            // 每次注入 LLM 的长期记忆条数
+// 使用 Preset 一键配置 AI 提供商 + 记忆
+MemoryConfig memoryConfig = MemoryConfig.fromPreset(
+    ApiPreset.GROK,           // AI 提供商（GROK/OPENAI/CLAUDE/CUSTOM）
+    "xai-your-api-key",       // AI API Key
+    "user_123"                // Mem0 用户 ID
+)
+    .mem0("https://api.mem0.ai", "mem0-api-key")
+    .maxContextMessages(50)
+    .maxMemoryEntries(5)
     .build();
+
 MemoryManager.init(context, memoryConfig);
+// AiInteract 已自动初始化，无需单独调用 AiInteract.init()
 
-// 2. 初始化 AI 模块
-AiConfig aiConfig = new AiConfig.Builder(
-    "https://api.openai.com/v1/chat/completions",
-    "sk-your-api-key"
-).build();
-AiInteract.init(aiConfig);
-
-// 3. 恢复上次会话
+// 恢复上次会话（包含长期记忆的 system prompt 会自动注入）
 MemoryManager.getInstance().restoreConversationToAiInteract();
+```
+
+**或者手动配置（不使用 Preset）：**
+
+```java
+MemoryConfig config = new MemoryConfig.Builder()
+    .aiApiEndpoint("https://api.openai.com/v1/chat/completions")
+    .aiApiKey("sk-your-key")
+    .aiModel("gpt-4o")
+    .mem0("https://api.mem0.ai", "mem0-key")
+    .mem0UserId("user_123")
+    .build();
+MemoryManager.init(context, config);
+```
+
+### 3. 运行时切换 AI 提供商
+
+```java
+// 用户在设置中选择 Grok → 立即切换，system prompt 也会更新
+MemoryManager.getInstance().switchAiPreset(ApiPreset.GROK, "xai-new-key");
+
+// 获取可用提供商列表（给 UI 显示）
+List<ApiPreset> presets = MemoryManager.getInstance().getAvailablePresets();
+// → [GROK, OPENAI, CLAUDE]
 ```
 
 ### 3. 用户发送消息时
@@ -187,8 +207,16 @@ MemoryManager.getInstance().forget("user_name");
 
 | 方法 | 说明 |
 |---|---|
-| `MemoryManager.init(Context, MemoryConfig)` | 初始化模块，必须最先调用 |
+| `MemoryManager.init(Context, MemoryConfig)` | 初始化模块（自动初始化 AiInteract 如果配置了 AI provider） |
 | `MemoryManager.getInstance()` | 获取单例 |
+
+#### AI 提供商管理
+
+| 方法 | 说明 |
+|---|---|
+| `switchAiPreset(ApiPreset, String apiKey)` | 运行时切换 AI 提供商，自动更新 system prompt |
+| `getAvailablePresets()` | 获取可用提供商列表 → `List<ApiPreset>` |
+| `applySystemPromptToAi()` | 将当前 system prompt（含长期记忆）应用到 AiInteract |
 
 #### 消息存取
 
@@ -236,11 +264,23 @@ MemoryManager.getInstance().forget("user_name");
 
 ### MemoryConfig（配置）
 
+**推荐使用 `fromPreset()` 工厂方法：**
+
+```java
+MemoryConfig.fromPreset(ApiPreset.GROK, "xai-key", "user_123")
+    .mem0("https://api.mem0.ai", "mem0-key")
+    .maxContextMessages(50)
+    .build();
+```
+
+**或使用 Builder 手动配置：**
+
 ```java
 new MemoryConfig.Builder()
-    .mem0Endpoint("https://your-mem0-server.com")  // Mem0 服务地址
-    .mem0ApiKey("your-api-key")                     // Mem0 API Key
-    .mem0UserId("user_123")                         // 用户标识
+    .aiPreset(ApiPreset.OPENAI, "sk-key")          // AI 提供商 + API Key
+    .aiModel("gpt-4-turbo")                        // 覆盖默认模型
+    .mem0("https://api.mem0.ai", "mem0-key")        // Mem0 服务
+    .mem0UserId("user_123")                         // Mem0 用户标识
     .maxContextMessages(50)                         // 近期消息窗口 (default: 50)
     .maxSearchResults(10)                           // 关键词搜索结果数 (default: 10)
     .maxMemoryEntries(5)                            // 注入 LLM 的长期记忆数 (default: 5)
